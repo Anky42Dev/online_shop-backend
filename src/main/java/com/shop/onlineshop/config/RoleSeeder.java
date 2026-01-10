@@ -4,20 +4,26 @@ import com.shop.onlineshop.models.entity.Role;
 import com.shop.onlineshop.models.entity.UserEntity;
 import com.shop.onlineshop.repo.RoleRepo;
 import com.shop.onlineshop.repo.UserEntityRepo;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 
 @Component
 public class RoleSeeder implements CommandLineRunner {
   private final PasswordEncoder passwordEncoder;
   private final UserEntityRepo userRepo;
   private final RoleRepo roleRepo;
-  private static final String ADMIN_USERNAME = "admin";
-  private static final String ADMIN_PASSWORD = "1passw0rdadmin1";
+
+  @Value("${onlineshop.app.admin.username}")
+  private String ADMIN_USERNAME;
+  @Value("${onlineshop.app.admin.password}")
+  private String ADMIN_PASSWORD;
   public RoleSeeder(RoleRepo roleRepo,
                     UserEntityRepo userRepo,
                     PasswordEncoder passwordEncoder){
@@ -55,6 +61,9 @@ public class RoleSeeder implements CommandLineRunner {
       r.setName("ROLE_COURIER");
       return roleRepo.save(r);
     });
+    if (roleRepo.findByName("ROLE_TRADER").isEmpty()) roleRepo.save(new Role("ROLE_TRADER"));
+    if (roleRepo.findByName("ROLE_COURIER").isEmpty()) roleRepo.save(new Role("ROLE_COURIER"));
+    if (roleRepo.findByName("ROLE_CUSTOMER").isEmpty()) roleRepo.save(new Role("ROLE_CUSTOMER"));
     boolean isAdmin = userRepo.existsByRoles_Name("ROLE_ADMIN");
     if (!isAdmin) {
       if (!userRepo.existsByUsername(ADMIN_USERNAME)) {
@@ -63,7 +72,7 @@ public class RoleSeeder implements CommandLineRunner {
         user.setEmail("okuulib.admin@okuulib.com");
         user.setFullName("System Administrator");
         user.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
-        user.setRoles(new java.util.ArrayList<>(java.util.Collections.singletonList(role_admin)));
+        user.setRoles(new ArrayList<>(Collections.singletonList(role_admin)));
         user.setCreatedAt(LocalDateTime.now());
         // Admin should be considered verified and not require OTP
         user.setVerified(true);
@@ -72,7 +81,7 @@ public class RoleSeeder implements CommandLineRunner {
       } else {
         var user = userRepo.findByUsername(ADMIN_USERNAME).orElseThrow();
         if (user.getRoles().stream().noneMatch(r -> "ROLE_ADMIN".equals(r.getName()))) {
-          var roles = new java.util.ArrayList<>(user.getRoles());
+          var roles = new ArrayList<>(user.getRoles());
           roles.add(role_admin);
           user.setRoles(roles);
         }

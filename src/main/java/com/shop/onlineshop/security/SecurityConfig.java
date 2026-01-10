@@ -51,8 +51,12 @@ public class SecurityConfig {
           "/swagger-ui/**",
           "/v3/api-docs/**"
         ).permitAll()
-              .requestMatchers("/api/v1/cart/**").hasAuthority("ROLE_CUSTOMER")
-              .requestMatchers("/api/v1/orders/**").hasAuthority("ROLE_CUSTOMER")
+              //admin endpoints
+              .requestMatchers("/api/v1/auth/register").hasAnyRole("ADMIN", "TRADER")
+
+              // Protected Customer endpoint
+              // These require "ROLE_CUSTOMER" and a valid JWT
+              .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
               .anyRequest().authenticated()
       )
       .authenticationProvider(authenticationProvider())

@@ -11,6 +11,7 @@ import com.shop.onlineshop.service.impl.UserServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,6 +25,12 @@ public class UserEntityController {
 
     public UserEntityController(UserServiceImpl userService) {
         this.userService = userService;
+    }
+
+    @PostMapping("/register")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TRADER')")
+    public ResponseEntity<RegistrationResponse> register(@RequestBody RegisterRequest registerRequest){
+        return ResponseEntity.status(201).body(userService.register(registerRequest));
     }
 
     @PostMapping("/login")

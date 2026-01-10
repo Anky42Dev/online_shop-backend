@@ -1,10 +1,10 @@
 package com.shop.onlineshop.service.impl;
 
 import com.shop.onlineshop.mapper.OrderMapper;
+import com.shop.onlineshop.models.model.OrderStatus;
 import com.shop.onlineshop.models.request.PlaceOrderRequest;
 import com.shop.onlineshop.models.response.OrderResponse;
 import com.shop.onlineshop.models.entity.*;
-import com.shop.onlineshop.models.model.OrderStatus;
 import com.shop.onlineshop.repo.*;
 import com.shop.onlineshop.service.CustomerOrderService;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         order.setCity(request.city());
         order.setAddress(request.address());
         order.setCreatedAt(LocalDateTime.now());
-        order.setStatus(OrderStatus.CREATED);
+        order.setStatus(OrderStatus.ASSIGNED);
 
         UserEntity trader = cart.getCartItems().get(0).getProduct().getTrader();
         order.setTrader(trader);

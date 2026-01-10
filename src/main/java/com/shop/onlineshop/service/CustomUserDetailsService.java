@@ -36,7 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         .map(Role::getName)
         .toList();
 
-      System.out.println("User  found: " + user.getUsername() + " with roles: " + roleNames);
+      System.out.println("User found: " + user.getUsername() + " with roles: " + roleNames);
 
       return new User(user.getUsername(), user.getPassword(), mapRolesToAuthorities(user.getRoles()));
     }

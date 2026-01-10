@@ -1,8 +1,11 @@
 package com.shop.onlineshop.models.model;
 
 public enum OrderStatus {
-    CREATED,
-    CONFIRMED,
-    CANCELLED,
-    DELIVERED
+    ASSIGNED,
+    ACCEPTED,
+    PICKED_UP,
+    IN_TRANSIT,
+    DELIVERED,
+    FAILED
+
 }

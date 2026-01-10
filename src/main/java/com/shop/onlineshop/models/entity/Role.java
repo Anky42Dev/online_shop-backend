@@ -1,12 +1,11 @@
 package com.shop.onlineshop.models.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@Data
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Table(name = "roles")
@@ -17,4 +16,7 @@ public class Role {
 
   private String name;
 
+  public Role(String name) {
+    this.name = name;
+  }
 }
