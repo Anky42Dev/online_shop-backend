@@ -3,9 +3,16 @@ package com.shop.onlineshop.repo;
 import com.shop.onlineshop.models.entity.Courier;
 import com.shop.onlineshop.models.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
 
 @Repository
 public interface CourierRepo extends JpaRepository<Courier, Long> {
     Courier findCourierByUserEntity(UserEntity userEntity);
+
+    @Query(value = "SELECT u.* FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = :roleName LIMIT 1", nativeQuery = true)
+    Optional<Courier> findFirstByRoleName(@Param("roleName") String roleName);
 }
