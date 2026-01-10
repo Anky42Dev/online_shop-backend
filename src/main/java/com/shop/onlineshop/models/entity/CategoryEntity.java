@@ -1,5 +1,6 @@
 package com.shop.onlineshop.models.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,6 +17,7 @@ public class CategoryEntity{
     private Long id;
 
     @OneToMany(mappedBy = "category")
+    @JsonIgnore
     private List<ProductEntity> products;
 
     @Column(nullable = false)

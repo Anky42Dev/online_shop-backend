@@ -63,4 +63,10 @@ public class UserEntity {
 
     @OneToOne(mappedBy = "userEntity")
     private CustomerEntity customer;
+
+    @Column(unique = true)
+    private String apiKey;
+
+    @Column(nullable = false)
+    private boolean active = true;
 }

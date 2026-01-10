@@ -7,6 +7,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,6 +24,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
   private final JWTFilter jwtFilter;
@@ -49,10 +51,8 @@ public class SecurityConfig {
           "/swagger-ui/**",
           "/v3/api-docs/**"
         ).permitAll()
-              // Protected Customer endpoint
-              // These require "ROLE_CUSTOMER" and a valid JWT
-              .requestMatchers("/api/v1/cart/**").hasRole("CUSTOMER")
-              .requestMatchers("/api/v1/orders/**").hasRole("CUSTOMER")
+              .requestMatchers("/api/v1/cart/**").hasAuthority("ROLE_CUSTOMER")
+              .requestMatchers("/api/v1/orders/**").hasAuthority("ROLE_CUSTOMER")
               .anyRequest().authenticated()
       )
       .authenticationProvider(authenticationProvider())

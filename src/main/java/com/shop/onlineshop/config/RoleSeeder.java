@@ -40,6 +40,21 @@ public class RoleSeeder implements CommandLineRunner {
       r.setName("ROLE_ADMIN");
       return roleRepo.save(r);
     });
+    var role_customer = roleRepo.findByName("ROLE_CUSTOMER").orElseGet(() -> {
+      var r = new Role();
+      r.setName("ROLE_CUSTOMER");
+      return roleRepo.save(r);
+    });
+    var role_trader = roleRepo.findByName("ROLE_TRADER").orElseGet(() -> {
+      var r = new Role();
+      r.setName("ROLE_TRADER");
+      return roleRepo.save(r);
+    });
+    var role_courier = roleRepo.findByName("ROLE_COURIER").orElseGet(() -> {
+      var r = new Role();
+      r.setName("ROLE_COURIER");
+      return roleRepo.save(r);
+    });
     boolean isAdmin = userRepo.existsByRoles_Name("ROLE_ADMIN");
     if (!isAdmin) {
       if (!userRepo.existsByUsername(ADMIN_USERNAME)) {
