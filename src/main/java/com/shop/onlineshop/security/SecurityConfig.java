@@ -41,10 +41,9 @@ public class SecurityConfig {
       .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
       .authorizeHttpRequests(auth -> auth
         .requestMatchers(
-          "/api/auth/register",
-          "/api/auth/login",
-          "/api/auth/login/otp",
-          "/api/auth/refresh-token",
+          "/api/v1/auth/login",
+          "/api/v1/auth/login/otp",
+          "/api/v1/auth/refresh-token",
           "/api/v1/products", //public products list
           "/ping",
           "/swagger-ui/**",
