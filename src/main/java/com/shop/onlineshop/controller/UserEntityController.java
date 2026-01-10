@@ -17,18 +17,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping({"/api/v1", "/api/auth"})
+@RequestMapping({"/api/v1/auth"})
 public class UserEntityController {
 
     private final UserServiceImpl userService;
 
     public UserEntityController(UserServiceImpl userService) {
         this.userService = userService;
-    }
-
-    @PostMapping("/register")
-    public ResponseEntity<RegistrationResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ResponseEntity.status(201).body(userService.register(request));
     }
 
     @PostMapping("/login")
