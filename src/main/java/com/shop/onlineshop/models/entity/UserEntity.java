@@ -60,4 +60,7 @@ public class UserEntity {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToOne(mappedBy = "userEntity")
+    private CustomerEntity customer;
 }
