@@ -13,6 +13,4 @@ import java.util.Optional;
 public interface CourierRepo extends JpaRepository<Courier, Long> {
     Courier findCourierByUserEntity(UserEntity userEntity);
 
-    @Query(value = "SELECT u.* FROM users u JOIN roles r ON u.role_id = r.id WHERE r.name = :roleName LIMIT 1", nativeQuery = true)
-    Optional<Courier> findFirstByRoleName(@Param("roleName") String roleName);
 }

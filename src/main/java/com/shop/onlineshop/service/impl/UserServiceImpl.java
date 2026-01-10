@@ -11,12 +11,14 @@ import com.shop.onlineshop.models.request.OtpVerifyRequest;
 import com.shop.onlineshop.models.request.RegisterRequest;
 import com.shop.onlineshop.models.response.JWTResponse;
 import com.shop.onlineshop.models.response.LoginResponse;
+import com.shop.onlineshop.models.response.RegisterResponse;
 import com.shop.onlineshop.models.response.RegistrationResponse;
 import com.shop.onlineshop.security.service.JWTService;
 import com.shop.onlineshop.service.OtpService;
 import com.shop.onlineshop.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,6 +35,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserEntityDataService userData;
@@ -46,21 +49,6 @@ public class UserServiceImpl implements UserService {
     @Value("${onlineshop.app.isproduction}")
     private boolean isProduction;
 
-    public UserServiceImpl(
-            UserEntityDataService userData,
-            RoleDataService roleData,
-            PasswordEncoder passwordEncoder,
-            AuthenticationManager authManager,
-            JWTService jwtService,
-            OtpService otpService
-    ) {
-        this.userData = userData;
-        this.roleData = roleData;
-        this.passwordEncoder = passwordEncoder;
-        this.authManager = authManager;
-        this.jwtService = jwtService;
-        this.otpService = otpService;
-    }
 
     @Override
     public RegistrationResponse register(RegisterRequest req) {
@@ -105,6 +93,41 @@ public class UserServiceImpl implements UserService {
                 jwt.accessToken(),
                 jwt.refreshToken()
         );
+    }
+
+    @Override
+    public UserEntity register(RegisterRequest req, Role role) {
+        if (!req.password().equals(req.confirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+
+        if (userData.existsByEmail(req.email())) {
+            throw new UserAlreadyExistsException("Email already registered");
+        }
+
+        UserEntity user = new UserEntity();
+        user.setFullName(req.fullName());
+        user.setEmail(req.email());
+        user.setUsername(req.email());
+        user.setPassword(passwordEncoder.encode(req.password()));
+        user.setCreatedAt(LocalDateTime.now());
+
+        user.setRoles(List.of(role));
+
+        userData.saveUserEntity(user);
+
+        Authentication auth =
+                new UsernamePasswordAuthenticationToken(
+                        user.getUsername(),
+                        null,
+                        user.getRoles().stream()
+                                .map(r -> new SimpleGrantedAuthority(r.getName()))
+                                .toList()
+                );
+
+        JWTResponse jwt = issueTokens(auth);
+
+        return user;
     }
 
 

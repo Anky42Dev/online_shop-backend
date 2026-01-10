@@ -66,22 +66,20 @@ public class CourierServiceImpl implements CourierService {
     }
 
     @Override
-    @Transactional()
-    public void setStatus(Long deliveryTaskId, OrderStatus orderStatus) {
-        DeliveryTaskEntity deliveryTaskEntity = deliveryTaskRepo.findById(deliveryTaskId).orElseThrow(()->new ResourceNotFoundException("Delivery task with id: " + deliveryTaskId + " not found"));
+    @Transactional
+    public void setStatus(Long deliveryTaskId, OrderStatus newStatus) {
+        DeliveryTaskEntity task = deliveryTaskRepo.findById(deliveryTaskId)
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
 
-        deliveryTaskEntity.setOrderStatus(orderStatus);
+        task.setOrderStatus(newStatus);
 
-        if(orderStatus == OrderStatus.DELIVERED){
-            OrderEntity orderEntity = deliveryTaskEntity.getOrderEntity();
-            if(orderEntity!=null){
-                orderEntity.setStatus(OrderStatus.DELIVERED);
-                orderRepo.save(orderEntity);
-                log.info("Order {} marked as DELIVERED by courier", orderEntity.getId());            }
+        if (task.getOrderEntity() != null) {
+            task.getOrderEntity().setStatus(newStatus);
+            orderRepo.save(task.getOrderEntity());
         }
-        deliveryTaskRepo.save(deliveryTaskEntity);
-    }
 
+        deliveryTaskRepo.save(task);
+    }
     @Override
     @Transactional
     public void setEvidence(Long taskId, String evidenceUrl) {

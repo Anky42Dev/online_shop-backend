@@ -67,6 +67,6 @@ public class UserEntity {
     @Column(unique = true)
     private String apiKey;
 
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 }

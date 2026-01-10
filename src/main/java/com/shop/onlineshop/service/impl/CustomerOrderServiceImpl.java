@@ -76,10 +76,11 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         OrderEntity savedOrder = orderRepo.save(order);
 
 
-        Courier randomCourier = courierRepo.findFirstByRoleName("ROLE_COURIER")
-                .orElseThrow(()->new UserNotFoundException("Courier not found"));
+        List<Courier> couriers = courierRepo.findAll();
 
-        if (randomCourier != null) {
+        if(!couriers.isEmpty()){
+            Courier randomCourier = couriers.get(0);
+
             DeliveryTaskEntity task = new DeliveryTaskEntity();
             task.setOrderEntity(savedOrder);
             task.setCourier(randomCourier);
