@@ -18,5 +18,6 @@ public record RegisterRequest(
 
         @Size(min = 8)
         String confirmPassword
+
 ) {}
 

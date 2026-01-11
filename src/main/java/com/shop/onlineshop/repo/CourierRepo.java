@@ -11,6 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface CourierRepo extends JpaRepository<Courier, Long> {
-    Courier findCourierByUserEntity(UserEntity userEntity);
+    Optional<Courier> findCourierByUserEntity(UserEntity userEntity);
+
 
 }

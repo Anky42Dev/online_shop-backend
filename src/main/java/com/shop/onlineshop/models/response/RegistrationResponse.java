@@ -4,7 +4,9 @@ public record RegistrationResponse(
         String message,
         User user,
         String accessToken,
-        String refreshToken
+        String refreshToken,
+        boolean isOtpRequired,
+        Integer otpExpirationInSeconds
 ) {
     public record User(
             Long id,

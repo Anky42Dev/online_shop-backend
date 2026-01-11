@@ -5,22 +5,23 @@ import com.shop.onlineshop.models.model.OrderStatus;
 import com.shop.onlineshop.service.CourierService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/couriers")
+@RequestMapping("/api/v1")
 @RequiredArgsConstructor
 public class CourierController {
 
     private final CourierService courierService;
 
-    @GetMapping("/tasks")
+    @GetMapping("/couriers/{id}/tasks")
     @PreAuthorize("hasRole('COURIER')")
-    public ResponseEntity<List<DeliveryTaskDTO>> getMyTasks() {
-        return ResponseEntity.ok(courierService.deliveryTasks());
+    public ResponseEntity<List<DeliveryTaskDTO>> getMyTasks(@PathVariable Long id) throws AccessDeniedException {
+        return ResponseEntity.ok(courierService.deliveryTasks(id));
     }
 
     @PostMapping("/tasks/{taskId}/accept")
@@ -37,6 +38,13 @@ public class CourierController {
             @RequestParam OrderStatus status
     ) {
         courierService.setStatus(taskId, status);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/tasks/{taskId}/evidence")
+    @PreAuthorize("hasRole('COURIER')")
+    public ResponseEntity<Void> evidence(@PathVariable Long taskId, String evidenceUrl){
+        courierService.setEvidence(taskId, evidenceUrl);
         return ResponseEntity.ok().build();
     }
 }

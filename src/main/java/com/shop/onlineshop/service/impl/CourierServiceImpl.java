@@ -1,14 +1,13 @@
 package com.shop.onlineshop.service.impl;
 
 import com.shop.onlineshop.exceptions.ResourceNotFoundException;
-import com.shop.onlineshop.exceptions.UserNotFoundException;
 import com.shop.onlineshop.mapper.DeliveryTaskMapper;
 import com.shop.onlineshop.models.dto.DeliveryTaskDTO;
 import com.shop.onlineshop.models.entity.Courier;
 import com.shop.onlineshop.models.entity.DeliveryTaskEntity;
 import com.shop.onlineshop.models.entity.OrderEntity;
 import com.shop.onlineshop.models.entity.UserEntity;
-import com.shop.onlineshop.models.model.OrderStatus;
+import com.shop.onlineshop.models.model.OrderStatus; // Или DeliveryStatus, если поменяли
 import com.shop.onlineshop.repo.CourierRepo;
 import com.shop.onlineshop.repo.DeliveryTaskRepo;
 import com.shop.onlineshop.repo.OrderRepo;
@@ -16,10 +15,12 @@ import com.shop.onlineshop.service.CourierService;
 import com.shop.onlineshop.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException; // <--- ИСПРАВЛЕНО
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @Slf4j
@@ -31,21 +32,29 @@ public class CourierServiceImpl implements CourierService {
     private final OrderRepo orderRepo;
     private final DeliveryTaskMapper deliveryTaskMapper;
 
+    private Courier getCurrentCourier() {
+        UserEntity userEntity = userService.getCurrentUser();
+        return courierRepo.findCourierByUserEntity(userEntity)
+                .orElseThrow(() -> new ResourceNotFoundException("Courier profile not found")); // Лучше обработать Optional
+    }
 
     @Override
-    @Transactional(readOnly=true)
-    public List<DeliveryTaskDTO> deliveryTasks() {
-        Long userId = userService.getCurrentUser().getId();
-        Courier courier = courierRepo.findById(userId).orElseThrow(()->new UserNotFoundException("User with id: " + userId + " not found"));
-        return deliveryTaskMapper.toDTO(deliveryTaskRepo.findDeliveryTaskEntitiesByCourier_Id(courier.getId()));
+    @Transactional(readOnly = true)
+    public List<DeliveryTaskDTO> deliveryTasks(Long id) {
+        Courier courier = getCurrentCourier();
 
+        if (!Objects.equals(courier.getId(), id)) {
+            throw new AccessDeniedException("Access denied: You may only see your tasks!");
+        }
+
+        return deliveryTaskMapper.toDTO(deliveryTaskRepo.findDeliveryTaskEntitiesByCourier_Id(courier.getId()));
     }
 
     @Override
     @Transactional
     public void acceptTask(Long deliveryTaskId) {
-        UserEntity currentUser = userService.getCurrentUser();
-        Courier courier = courierRepo.findCourierByUserEntity(currentUser);
+        Courier courier = getCurrentCourier();
+
         DeliveryTaskEntity deliveryTaskEntity = deliveryTaskRepo.findById(deliveryTaskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Delivery task with id: " + deliveryTaskId + " not found"));
 
@@ -58,7 +67,6 @@ public class CourierServiceImpl implements CourierService {
         deliveryTaskEntity.setOrderStatus(OrderStatus.ACCEPTED);
 
         OrderEntity orderEntity = deliveryTaskEntity.getOrderEntity();
-
         orderEntity.setStatus(OrderStatus.ACCEPTED);
 
         deliveryTaskRepo.save(deliveryTaskEntity);
@@ -68,8 +76,14 @@ public class CourierServiceImpl implements CourierService {
     @Override
     @Transactional
     public void setStatus(Long deliveryTaskId, OrderStatus newStatus) {
+        Courier courier = getCurrentCourier();
+
         DeliveryTaskEntity task = deliveryTaskRepo.findById(deliveryTaskId)
                 .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        if (!Objects.equals(task.getCourier().getId(), courier.getId())) {
+            throw new AccessDeniedException("You cannot change status of a task that is not assigned to you.");
+        }
 
         task.setOrderStatus(newStatus);
 
@@ -80,11 +94,18 @@ public class CourierServiceImpl implements CourierService {
 
         deliveryTaskRepo.save(task);
     }
+
     @Override
     @Transactional
     public void setEvidence(Long taskId, String evidenceUrl) {
+        Courier courier = getCurrentCourier();
+
         DeliveryTaskEntity task = deliveryTaskRepo.findById(taskId)
-                .orElseThrow(()->new ResourceNotFoundException("Task not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Task not found"));
+
+        if (!Objects.equals(task.getCourier().getId(), courier.getId())) {
+            throw new AccessDeniedException("You cannot upload evidence for a task that is not assigned to you.");
+        }
 
         task.setEvidenceUrl(evidenceUrl);
         deliveryTaskRepo.save(task);

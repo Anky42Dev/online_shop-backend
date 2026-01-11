@@ -1,9 +1,11 @@
 package com.shop.onlineshop.models.response;
 
 public record LoginResponse(
-        String message,
-        Integer expiresInSeconds,
         String accessToken,
-        String refreshToken
+        String refreshToken,
+        String role,
+        Long userId,
+        boolean isOtpRequired,
+        Integer otpExpiresInSeconds
 ) {
 }

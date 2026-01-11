@@ -5,15 +5,10 @@ import com.shop.onlineshop.dataservices.UserEntityDataService;
 import com.shop.onlineshop.exceptions.UserAlreadyExistsException;
 import com.shop.onlineshop.models.entity.Role;
 import com.shop.onlineshop.models.entity.UserEntity;
-import com.shop.onlineshop.models.request.ChangePasswordRequest;
-import com.shop.onlineshop.models.request.LoginRequest;
-import com.shop.onlineshop.models.request.OtpVerifyRequest;
-import com.shop.onlineshop.models.request.RegisterRequest;
-import com.shop.onlineshop.models.response.JWTResponse;
-import com.shop.onlineshop.models.response.LoginResponse;
-import com.shop.onlineshop.models.response.RegisterResponse;
-import com.shop.onlineshop.models.response.RegistrationResponse;
+import com.shop.onlineshop.models.request.*;
+import com.shop.onlineshop.models.response.*;
 import com.shop.onlineshop.security.service.JWTService;
+import com.shop.onlineshop.service.CustomUserDetailsService;
 import com.shop.onlineshop.service.OtpService;
 import com.shop.onlineshop.service.UserService;
 import jakarta.servlet.http.Cookie;
@@ -21,17 +16,21 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -45,12 +44,11 @@ public class UserServiceImpl implements UserService {
     private final AuthenticationManager authManager;
     private final JWTService jwtService;
     private final OtpService otpService;
-
-    @Value("${onlineshop.app.isproduction}")
-    private boolean isProduction;
+    private final CustomUserDetailsService customUserDetailsService;
 
 
     @Override
+    @Transactional
     public RegistrationResponse register(RegisterRequest req) {
         if (!req.password().equals(req.confirmPassword())) {
             throw new IllegalArgumentException("Passwords do not match");
@@ -67,35 +65,28 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(req.password()));
         user.setCreatedAt(LocalDateTime.now());
 
-        Role role = roleData.findByName("ROLE_USER");
+        Role role = roleData.findByName("ROLE_TRADER");
         user.setRoles(List.of(role));
 
+        otpService.generateAndAssign(user);
         userData.saveUserEntity(user);
 
-        Authentication auth =
-                new UsernamePasswordAuthenticationToken(
-                        user.getUsername(),
-                        null,
-                        user.getRoles().stream()
-                                .map(r -> new SimpleGrantedAuthority(r.getName()))
-                                .toList()
-                );
-
-        JWTResponse jwt = issueTokens(auth);
-
         return new RegistrationResponse(
-                "Registration successful",
+                "Registration successful! Check OTP",
                 new RegistrationResponse.User(
                         user.getId(),
                         user.getFullName(),
                         user.getEmail()
                 ),
-                jwt.accessToken(),
-                jwt.refreshToken()
+                null,
+                null,
+                true,
+                300
         );
     }
 
     @Override
+    @Transactional
     public UserEntity register(RegisterRequest req, Role role) {
         if (!req.password().equals(req.confirmPassword())) {
             throw new IllegalArgumentException("Passwords do not match");
@@ -113,25 +104,15 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(LocalDateTime.now());
 
         user.setRoles(List.of(role));
+        user.setVerified(true);
 
         userData.saveUserEntity(user);
-
-        Authentication auth =
-                new UsernamePasswordAuthenticationToken(
-                        user.getUsername(),
-                        null,
-                        user.getRoles().stream()
-                                .map(r -> new SimpleGrantedAuthority(r.getName()))
-                                .toList()
-                );
-
-        JWTResponse jwt = issueTokens(auth);
 
         return user;
     }
 
-
     @Override
+    @Transactional
     public LoginResponse login(LoginRequest request, HttpServletResponse response) {
         try {
             authManager.authenticate(
@@ -160,10 +141,12 @@ public class UserServiceImpl implements UserService {
             JWTResponse jwt = issueTokens(auth);
 
             return new LoginResponse(
-                    "Login successful",
-                    null,
                     jwt.accessToken(),
-                    jwt.refreshToken()
+                    jwt.refreshToken(),
+                    user.getRoles().getFirst().getName(),
+                    user.getId(),
+                    false,
+                    null
             );
         }
 
@@ -171,16 +154,18 @@ public class UserServiceImpl implements UserService {
         userData.updateUserEntity(user);
 
         return new LoginResponse(
-                "OTP sent",
-                300,
                 null,
-                null
+                null,
+                user.getRoles().getFirst().getName(),
+                user.getId(),
+                true,
+                300
         );
     }
 
     @Override
-    public JWTResponse verifyOtp(OtpVerifyRequest request) {
-
+    @Transactional(noRollbackFor = BadCredentialsException.class)
+    public LoginResponse verifyOtp(OtpVerifyRequest request) {
         UserEntity user = userData.getUserEntityByUsernameOrThrow(request.username());
 
         if (!otpService.verify(user, request.otp())) {
@@ -194,7 +179,6 @@ public class UserServiceImpl implements UserService {
         }
 
         otpService.clear(user);
-        userData.updateUserEntity(user);
 
         // Mark user as verified after successful OTP verification
         user.setVerified(true);
@@ -209,12 +193,20 @@ public class UserServiceImpl implements UserService {
                                 .toList()
                 );
 
-        return issueTokens(auth);
+        JWTResponse jwt = issueTokens(auth);
+        return new LoginResponse(
+                jwt.accessToken(),
+                jwt.refreshToken(),
+                user.getRoles().getFirst().getName(),
+                user.getId(),
+                false,
+                null
+        );
     }
 
     @Override
+    @Transactional
     public void changePassword(ChangePasswordRequest req) {
-
         UserEntity user = getCurrentUser();
 
         if (!passwordEncoder.matches(req.oldPassword(), user.getPassword())) {
@@ -228,16 +220,46 @@ public class UserServiceImpl implements UserService {
         userData.updateUserEntity(user);
     }
 
-    @Override
-    public void logout(HttpServletResponse response) {
-        Cookie cookie = new Cookie("refresh_token", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(isProduction);
-        cookie.setPath("/api/v1");
-        cookie.setMaxAge(0);
-        response.addCookie(cookie);
-    }
 
+    @Override
+    @Transactional
+    public LoginResponse refreshToken(RefreshTokenRequest request) {
+        String incomingRefreshToken = request.refreshToken();
+
+        String username;
+        try {
+            username = jwtService.extractUserName(incomingRefreshToken);
+        } catch (Exception e) {
+            throw new BadCredentialsException("Invalid or expired refresh token");
+        }
+
+        UserEntity user = userData.getUserEntityByUsernameOrThrow(username);
+
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        if (!jwtService.validateToken(incomingRefreshToken, userDetails)) {
+            throw new BadCredentialsException("Invalid refresh token");
+        }
+
+        Authentication auth =
+                new UsernamePasswordAuthenticationToken(
+                        user.getUsername(),
+                        null,
+                        user.getRoles().stream()
+                                .map(r -> new SimpleGrantedAuthority(r.getName()))
+                                .toList()
+                );
+
+        JWTResponse jwt = issueTokens(auth);
+
+        return new LoginResponse(
+                jwt.accessToken(),
+                jwt.refreshToken(),
+                user.getRoles().getFirst().getName(),
+                user.getId(),
+                false,
+                null
+        );
+    }
 
     @Override
     public UserEntity getCurrentUser() {

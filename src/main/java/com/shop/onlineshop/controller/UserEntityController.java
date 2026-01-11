@@ -1,9 +1,6 @@
 package com.shop.onlineshop.controller;
 
-import com.shop.onlineshop.models.request.ChangePasswordRequest;
-import com.shop.onlineshop.models.request.LoginRequest;
-import com.shop.onlineshop.models.request.OtpVerifyRequest;
-import com.shop.onlineshop.models.request.RegisterRequest;
+import com.shop.onlineshop.models.request.*;
 import com.shop.onlineshop.models.response.JWTResponse;
 import com.shop.onlineshop.models.response.LoginResponse;
 import com.shop.onlineshop.models.response.RegistrationResponse;
@@ -39,7 +36,7 @@ public class UserEntityController {
     }
 
     @PostMapping("/login/otp")
-    public ResponseEntity<JWTResponse> verifyOtp(
+    public ResponseEntity<LoginResponse> verifyOtp(
             @RequestBody OtpVerifyRequest request
     ) {
         return ResponseEntity.ok(userService.verifyOtp(request));
@@ -51,10 +48,10 @@ public class UserEntityController {
         return ResponseEntity.ok("Password changed successfully");
     }
 
-    @PostMapping("/logout")
-    public ResponseEntity<String> logout(HttpServletResponse response) {
-        userService.logout(response);
-        return ResponseEntity.ok("Logout successful");
+    @PostMapping("/refresh")
+    public ResponseEntity<LoginResponse> refresh(@RequestBody RefreshTokenRequest refreshTokenRequest){
+        return ResponseEntity.ok(userService.refreshToken(refreshTokenRequest));
     }
+
 }
 
