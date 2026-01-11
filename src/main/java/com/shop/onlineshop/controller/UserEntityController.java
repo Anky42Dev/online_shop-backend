@@ -24,10 +24,15 @@ public class UserEntityController {
         this.userService = userService;
     }
 
-    @PostMapping("/register")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TRADER')")
-    public ResponseEntity<RegistrationResponse> register(@RequestBody RegisterRequest registerRequest){
-        return ResponseEntity.status(201).body(userService.register(registerRequest));
+    @PostMapping("/register-trader")
+    public ResponseEntity<RegistrationResponse> registerTrader(@RequestBody RegisterRequest registerRequest){
+        return ResponseEntity.status(201).body(userService.registerTrader(registerRequest));
+    }
+
+    @PostMapping("/register-customer")
+    @PreAuthorize("hasRole('TRADER')")
+    public ResponseEntity<RegistrationResponse> registerCustomer(@RequestBody RegisterRequest registerRequest){
+        return ResponseEntity.status(201).body(userService.registerCustomer(registerRequest));
     }
 
     @PostMapping("/login")

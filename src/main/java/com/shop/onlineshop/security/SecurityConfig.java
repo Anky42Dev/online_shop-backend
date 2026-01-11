@@ -45,14 +45,17 @@ public class SecurityConfig {
         .requestMatchers(
           "/api/v1/auth/login",
           "/api/v1/auth/login/otp",
-          "/api/v1/auth/refresh-token",
-          "/api/v1/products", //public products list
+          "/api/v1/auth/register-trader",
+          "/api/v1/auth/refresh",
+          "/api/v1/products",
           "/ping",
           "/swagger-ui/**",
           "/v3/api-docs/**"
         ).permitAll()
-              //admin endpoints
-              .requestMatchers("/api/v1/auth/register").hasAnyRole("ADMIN", "TRADER")
+              .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
+
+              //admin
+              .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
               // Protected Customer endpoint
               // These require "ROLE_CUSTOMER" and a valid JWT

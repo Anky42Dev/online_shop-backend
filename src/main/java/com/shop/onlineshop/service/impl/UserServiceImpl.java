@@ -49,39 +49,47 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public RegistrationResponse register(RegisterRequest req) {
-        if (!req.password().equals(req.confirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match");
-        }
+    public RegistrationResponse registerTrader(RegisterRequest req) {
+        validateRegistration(req);
 
-        if (userData.existsByEmail(req.email())) {
-            throw new UserAlreadyExistsException("Email already registered");
-        }
-
-        UserEntity user = new UserEntity();
-        user.setFullName(req.fullName());
-        user.setEmail(req.email());
-        user.setUsername(req.email());
-        user.setPassword(passwordEncoder.encode(req.password()));
-        user.setCreatedAt(LocalDateTime.now());
+        UserEntity user = createUserEntity(req);
 
         Role role = roleData.findByName("ROLE_TRADER");
         user.setRoles(List.of(role));
+
+        user.setVerified(false);
+        user.setApproved(false);
 
         otpService.generateAndAssign(user);
         userData.saveUserEntity(user);
 
         return new RegistrationResponse(
-                "Registration successful! Check OTP",
-                new RegistrationResponse.User(
-                        user.getId(),
-                        user.getFullName(),
-                        user.getEmail()
-                ),
-                null,
-                null,
-                true,
-                300
+                "Trader registration successful! Please verify OTP and wait for Admin approval.",
+                new RegistrationResponse.User(user.getId(), user.getFullName(), user.getEmail()),
+                null, null, true, 300
+        );
+    }
+
+    @Override
+    @Transactional
+    public RegistrationResponse registerCustomer(RegisterRequest req) {
+        validateRegistration(req);
+
+        UserEntity user = createUserEntity(req);
+
+        Role role = roleData.findByName("ROLE_CUSTOMER");
+        user.setRoles(List.of(role));
+
+        user.setVerified(true);
+        user.setApproved(true);
+        user.setRejected(false);
+
+        userData.saveUserEntity(user);
+
+        return new RegistrationResponse(
+                "Customer registered successfully.",
+                new RegistrationResponse.User(user.getId(), user.getFullName(), user.getEmail()),
+                null, null, false, null
         );
     }
 
@@ -116,10 +124,7 @@ public class UserServiceImpl implements UserService {
     public LoginResponse login(LoginRequest request, HttpServletResponse response) {
         try {
             authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.username(),
-                            request.password()
-                    )
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
         } catch (Exception e) {
             throw new BadCredentialsException("Invalid username or password");
@@ -127,7 +132,11 @@ public class UserServiceImpl implements UserService {
 
         UserEntity user = userData.getUserEntityByUsernameOrThrow(request.username());
 
-        // If user has already successfully verified OTP before, do not send OTP again, just issue JWT tokens
+        boolean isTrader = user.getRoles().stream().anyMatch(r -> r.getName().equals("ROLE_TRADER"));
+        if (isTrader && !user.isApproved()) {
+            throw new BadCredentialsException("Your account is pending approval by Admin.");
+        }
+
         if (user.isVerified()) {
             Authentication auth =
                     new UsernamePasswordAuthenticationToken(
@@ -220,7 +229,6 @@ public class UserServiceImpl implements UserService {
         userData.updateUserEntity(user);
     }
 
-
     @Override
     @Transactional
     public LoginResponse refreshToken(RefreshTokenRequest request) {
@@ -274,5 +282,25 @@ public class UserServiceImpl implements UserService {
 
         return new JWTResponse(access,refresh);
     }
+
+    private UserEntity createUserEntity(RegisterRequest req) {
+        UserEntity user = new UserEntity();
+        user.setFullName(req.fullName());
+        user.setEmail(req.email());
+        user.setUsername(req.email());
+        user.setPassword(passwordEncoder.encode(req.password()));
+        user.setCreatedAt(LocalDateTime.now());
+        return user;
+    }
+
+    private void validateRegistration(RegisterRequest req) {
+        if (!req.password().equals(req.confirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match");
+        }
+        if (userData.existsByEmail(req.email())) {
+            throw new UserAlreadyExistsException("Email already registered");
+        }
+    }
+
 
 }

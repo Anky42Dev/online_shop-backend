@@ -11,9 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 
 public interface UserService {
-    RegistrationResponse register(RegisterRequest request);
+    RegistrationResponse registerTrader(RegisterRequest request);
+    RegistrationResponse registerCustomer(RegisterRequest request);
     UserEntity register(RegisterRequest request, Role role);
-
     LoginResponse login(LoginRequest loginRequest, HttpServletResponse response);
     //might be changed
     LoginResponse verifyOtp(OtpVerifyRequest request);
