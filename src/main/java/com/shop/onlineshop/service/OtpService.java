@@ -29,7 +29,12 @@ public class OtpService {
         user.setOtpExpiresAt(LocalDateTime.now().plusMinutes(5));
         user.setOtpAttempts(0);
 
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        try {
+            emailService.sendOtpEmail(user.getEmail(), otp);
+            log.info("OTP email sent successfully to {}", user.getEmail());
+        } catch (Exception e) {
+            log.error("Failed to send OTP email to {}: {}", user.getEmail(), e.getMessage());
+        }
 
         log.info("OTP generated for user {}", user.getUsername());
     }
