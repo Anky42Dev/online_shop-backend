@@ -37,16 +37,13 @@ public class CustomerCartServiceImpl implements CustomerCartService {
 
         if (!cart.getCartItems().isEmpty()) {
             ProductEntity existingProduct = cart.getCartItems().get(0).getProduct();
-            
-            // Если у существующего товара есть трейдер (идеальный случай), сверяем с запросом
+           
             if (existingProduct.getTrader() != null) {
                 if (!existingProduct.getTrader().getId().equals(request.traderId())) {
                     throw new IllegalArgumentException("Cannot mix products from different traders in one cart");
                 }
             }
-             // Если у добавляемого товара есть трейдер, сверяем его с запросом (дополнительная проверка)
             if (product.getTrader() != null && !product.getTrader().getId().equals(request.traderId())) {
-                 // Здесь можно кинуть варнинг, но если архитектура кривая, лучше пропустить
             }
         }
 
