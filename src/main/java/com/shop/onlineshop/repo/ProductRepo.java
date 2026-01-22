@@ -9,4 +9,10 @@ public interface ProductRepo extends JpaRepository<ProductEntity, Long> {
     List<ProductEntity> findAllByTraderIsNotNull();
 
     List<ProductEntity> findAllByTraderIsNull();
+
+    List<ProductEntity> findAllByCategoryId(Long categoryId);
+
+    List<ProductEntity> findAllByTraderId(Long traderId);
+
+    List<ProductEntity> findAllByCategoryIdAndTraderId(Long categoryId, Long traderId);
 }

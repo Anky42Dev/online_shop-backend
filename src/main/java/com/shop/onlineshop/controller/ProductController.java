@@ -17,8 +17,11 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    public ResponseEntity<List<ProductResponse>> getAllProducts() {
-        return ResponseEntity.ok(productService.getAllProducts());
+    public ResponseEntity<List<ProductResponse>> getAllProducts(
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long traderId
+    ) {
+        return ResponseEntity.ok(productService.getAllProducts(categoryId, traderId));
     }
 
     @GetMapping("/{id}")
