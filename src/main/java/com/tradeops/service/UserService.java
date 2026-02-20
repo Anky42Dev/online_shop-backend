@@ -2,7 +2,7 @@ package com.tradeops.service;
 
 import com.tradeops.models.entity.Role;
 import com.tradeops.models.entity.UserEntity;
-import com.shop.onlineshop.models.request.*;
+import com.tradeops.models.request.*;
 import com.tradeops.models.request.ChangePasswordRequest;
 import com.tradeops.models.request.LoginRequest;
 import com.tradeops.models.request.RefreshTokenRequest;

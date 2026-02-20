@@ -1,14 +1,14 @@
 package com.tradeops;
 
-import com.shop.onlineshop.models.entity.*;
+import com.tradeops.models.entity.*;
 import com.tradeops.models.entity.*;
 import com.tradeops.models.model.OrderStatus;
-import com.shop.onlineshop.models.request.*;
+import com.tradeops.models.request.*;
 import com.tradeops.models.request.PlaceOrderRequest;
 import com.tradeops.models.request.RegisterRequest;
 import com.tradeops.models.response.OrderResponse;
-import com.shop.onlineshop.repo.*;
-import com.shop.onlineshop.service.*;
+import com.tradeops.repo.*;
+import com.tradeops.service.*;
 import com.tradeops.repo.*;
 import com.tradeops.service.CourierService;
 import com.tradeops.service.CustomerOrderService;
@@ -85,7 +85,6 @@ public class FullCycleTest {
         RegisterRequest traderReq = new RegisterRequest( "TraderJoe","trader@test.com", "password", "password");
         UserEntity traderUser = userService.register(traderReq, roleRepo.findByName("ROLE_TRADER").get());
         traderUser.setActive(true);
-        traderUser.setVerified(true);// Аппрув
         userRepo.save(traderUser);
 
         mockLogin(traderUser); // Логинимся как трейдер

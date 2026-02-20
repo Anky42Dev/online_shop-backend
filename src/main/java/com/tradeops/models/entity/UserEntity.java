@@ -58,9 +58,16 @@ public class UserEntity {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean active = true;
 
-    @Column(name = "approved")
-    private boolean approved = false;
+    @Column(name = "approved", nullable = false,  columnDefinition = "boolean default false")
+    private Boolean approved = false;
 
-    @Column(name = "rejected")
-    private boolean rejected = false;
+    @Column(name = "rejected", nullable = false, columnDefinition = "boolean default false")
+    private Boolean rejected = false;
+
+    public Boolean isApproved() {
+        return approved;
+    }
+    public Boolean isRejected(){
+        return rejected;
+    }
 }

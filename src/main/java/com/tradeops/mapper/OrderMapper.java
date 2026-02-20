@@ -1,7 +1,7 @@
 package com.tradeops.mapper;
 
 import com.tradeops.models.dto.OrderItemDto;
-import com.shop.onlineshop.models.entity.*;
+import com.tradeops.models.entity.*;
 import com.tradeops.models.entity.OrderEntity;
 import com.tradeops.models.entity.OrderItemEntity;
 import com.tradeops.models.response.OrderResponse;
