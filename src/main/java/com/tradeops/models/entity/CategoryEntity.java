@@ -1,0 +1,28 @@
+package com.tradeops.models.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@Entity
+@Table(name = "categories")
+public class CategoryEntity{
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @OneToMany(mappedBy = "category")
+    @JsonIgnore
+    private List<ProductEntity> products;
+
+    @Column(nullable = false)
+    private String name;
+
+
+
+}
