@@ -17,8 +17,20 @@ public class ProductServiceImpl implements ProductService {
     private final ProductMapper productMapper;
 
     @Override
-    public List<ProductResponse> getAllProducts() {
-        return productRepo.findAll().stream()
+    public List<ProductResponse> getAllProducts(Long categoryId, Long traderId) {
+        List<ProductEntity> products;
+
+        if (categoryId != null && traderId != null) {
+            products = productRepo.findAllByCategoryIdAndTraderId(categoryId, traderId);
+        } else if (categoryId != null) {
+            products = productRepo.findAllByCategoryId(categoryId);
+        } else if (traderId != null) {
+            products = productRepo.findAllByTraderId(traderId);
+        } else {
+            products = productRepo.findAll();
+        }
+
+        return products.stream()
                 .map(productMapper::toResponse)
                 .toList();
     }

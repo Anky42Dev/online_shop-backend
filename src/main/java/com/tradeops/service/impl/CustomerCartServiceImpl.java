@@ -39,13 +39,18 @@ public class CustomerCartServiceImpl implements CustomerCartService {
         ProductEntity product = productRepo.findById(request.productId())
                 .orElseThrow(() -> new IllegalArgumentException("Product not found"));
 
-        // Only one trader per cart
         if (!cart.getCartItems().isEmpty()) {
-            Long currentTraderId = cart.getCartItems().get(0).getProduct().getTrader().getId();
-            if (!currentTraderId.equals(product.getTrader().getId())) {
-                throw new IllegalArgumentException("Cannot mix products from different traders in one cart");
+            ProductEntity existingProduct = cart.getCartItems().get(0).getProduct();
+           
+            if (existingProduct.getTrader() != null) {
+                if (!existingProduct.getTrader().getId().equals(request.traderId())) {
+                    throw new IllegalArgumentException("Cannot mix products from different traders in one cart");
+                }
+            }
+            if (product.getTrader() != null && !product.getTrader().getId().equals(request.traderId())) {
             }
         }
+
         // Update quantity or create new item
         Optional<CartItemEntity> existingItem = cart.getCartItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))

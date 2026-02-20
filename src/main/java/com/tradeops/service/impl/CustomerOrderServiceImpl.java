@@ -58,6 +58,14 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (CartItemEntity cartItem : cart.getCartItems()) {
+            // Check stock
+            if (cartItem.getProduct().getStockQuantity() < cartItem.getQuantity()) {
+                throw new IllegalArgumentException("Not enough stock for product: " + cartItem.getProduct().getName());
+            }
+            
+            // Reduce stock
+            cartItem.getProduct().setStockQuantity(cartItem.getProduct().getStockQuantity() - cartItem.getQuantity());
+            
             OrderItemEntity orderItem = new OrderItemEntity();
             orderItem.setOrder(order);
             orderItem.setProduct(cartItem.getProduct());

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 public class CartController {
 
     private final CustomerCartService cartService;
-    private final UserService userService; // Твой существующий сервис для получения юзера
+    private final UserService userService;
 
     @GetMapping
     public ResponseEntity<CartResponse> getCart() {
