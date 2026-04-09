@@ -73,6 +73,9 @@ public class RoleSeeder implements CommandLineRunner {
               user.setPassword(passwordEncoder.encode(ADMIN_PASSWORD));
               user.setRoles(new ArrayList<>(Collections.singletonList(adminRole)));
               user.setCreatedAt(LocalDateTime.now());
+              user.setVerified(true);
+              user.setRejected(false);
+              user.setApproved(true);
               user.setActive(true);
               userRepo.save(user);
               System.out.println("✅ Super Admin created: " + ADMIN_USERNAME);

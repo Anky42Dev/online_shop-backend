@@ -1,6 +1,7 @@
 package com.tradeops.service.impl;
 
 import com.tradeops.mapper.ProductMapper;
+import com.tradeops.models.entity.ProductEntity;
 import com.tradeops.models.response.ProductResponse;
 import com.tradeops.repo.ProductRepo;
 import com.tradeops.service.ProductService;
