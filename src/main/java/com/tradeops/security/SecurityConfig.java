@@ -16,10 +16,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -30,6 +32,9 @@ public class SecurityConfig {
   private final JWTFilter jwtFilter;
   private final CustomUserDetailsService customUserDetailsService;
 
+  @Value("${app.cors.allowed-origins}")
+  private String allowedOrigins;
+
   public SecurityConfig(CustomUserDetailsService customUserDetailsService, JWTFilter jwtFilter) {
     this.customUserDetailsService = customUserDetailsService;
     this.jwtFilter = jwtFilter;
@@ -38,32 +43,34 @@ public class SecurityConfig {
   @Bean
   public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
     http
-      .csrf(AbstractHttpConfigurer::disable)
-      .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-      .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-      .authorizeHttpRequests(auth -> auth
-        .requestMatchers(
-          "/api/v1/auth/login",
-          "/api/v1/auth/login/otp",
-          "/api/v1/auth/register-trader",
-          "/api/v1/auth/refresh",
-          "/api/v1/products",
-          "/ping",
-          "/swagger-ui/**",
-          "/v3/api-docs/**"
-        ).permitAll()
-              .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+            .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers(
+                            "/api/v1/auth/login",
+                            "/api/v1/auth/register-trader",
+                            "/api/v1/auth/refresh",
+                            "/api/v1/products",
+                            "/ping",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**"
+                    ).permitAll()
+                    .requestMatchers("/api/v1/auth/register-customer").hasRole("TRADER")
 
-              //admin
-              .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
+                    //admin
+                    .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
 
-              // Protected Customer endpoint
-              // These require "ROLE_CUSTOMER" and a valid JWT
-              .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
-              .anyRequest().authenticated()
-      )
-      .authenticationProvider(authenticationProvider())
-      .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                    // Trader endpoints
+                    .requestMatchers("/api/v1/trader/**").hasRole("TRADER")
+
+                    // Protected Customer endpoint
+                    // These require "ROLE_CUSTOMER" and a valid JWT
+                    .requestMatchers("/api/v1/orders/**","/api/v1/cart/**").hasRole("CUSTOMER")
+                    .anyRequest().authenticated()
+            )
+            .authenticationProvider(authenticationProvider())
+            .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
@@ -71,10 +78,13 @@ public class SecurityConfig {
   @Bean
   public CorsConfigurationSource corsConfigurationSource() {
     CorsConfiguration cfg = new CorsConfiguration();
-    cfg.setAllowedOrigins(List.of("*"));
+    cfg.setAllowedOrigins(Arrays.stream(allowedOrigins.split(","))
+            .map(String::trim)
+            .toList());
     cfg.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
     cfg.setAllowedHeaders(List.of("Authorization", "Content-Type"));
     cfg.setExposedHeaders(List.of("Authorization"));
+    cfg.setAllowCredentials(true);
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
     source.registerCorsConfiguration("/**", cfg);
     return source;

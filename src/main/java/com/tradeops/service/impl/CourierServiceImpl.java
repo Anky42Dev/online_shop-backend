@@ -53,24 +53,31 @@ public class CourierServiceImpl implements CourierService {
     @Override
     @Transactional
     public void acceptTask(Long deliveryTaskId) {
-        Courier courier = getCurrentCourier();
+        Courier currentCourier = getCurrentCourier();
 
-        DeliveryTaskEntity deliveryTaskEntity = deliveryTaskRepo.findById(deliveryTaskId)
-                .orElseThrow(() -> new ResourceNotFoundException("Delivery task with id: " + deliveryTaskId + " not found"));
+        DeliveryTaskEntity task = deliveryTaskRepo.findById(deliveryTaskId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Delivery task with id: " + deliveryTaskId + " not found"));
 
-        if (deliveryTaskEntity.getCourier() != null) {
-            throw new IllegalStateException("Sorry, this task is already taken by another courier.");
+        if (task.getCourier() == null || !Objects.equals(task.getCourier().getId(), currentCourier.getId())) {
+            throw new AccessDeniedException(
+                    "Access denied: task " + deliveryTaskId + " is not assigned to you.");
         }
 
-        deliveryTaskEntity.setCourier(courier);
+        if (task.getOrderStatus() != OrderStatus.ASSIGNED) {
+            throw new IllegalStateException(
+                    "Task " + deliveryTaskId + " cannot be accepted: current status is " + task.getOrderStatus());
+        }
 
-        deliveryTaskEntity.setOrderStatus(OrderStatus.ACCEPTED);
+        task.setOrderStatus(OrderStatus.ACCEPTED);
 
-        OrderEntity orderEntity = deliveryTaskEntity.getOrderEntity();
-        orderEntity.setStatus(OrderStatus.ACCEPTED);
+        OrderEntity order = task.getOrderEntity();
+        order.setStatus(OrderStatus.ACCEPTED);
 
-        deliveryTaskRepo.save(deliveryTaskEntity);
-        orderRepo.save(orderEntity);
+        deliveryTaskRepo.save(task);
+        orderRepo.save(order);
+
+        log.info("Courier {} accepted task {}", currentCourier.getId(), deliveryTaskId);
     }
 
     @Override
