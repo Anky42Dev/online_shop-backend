@@ -7,15 +7,16 @@ import com.tradeops.models.entity.Courier;
 import com.tradeops.models.entity.DeliveryTaskEntity;
 import com.tradeops.models.entity.OrderEntity;
 import com.tradeops.models.entity.UserEntity;
-import com.tradeops.models.model.OrderStatus; // Или DeliveryStatus, если поменяли
+import com.tradeops.models.model.OrderStatus;
 import com.tradeops.repo.CourierRepo;
 import com.tradeops.repo.DeliveryTaskRepo;
 import com.tradeops.repo.OrderRepo;
 import com.tradeops.service.CourierService;
+import com.tradeops.service.EmailService;
 import com.tradeops.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.AccessDeniedException; // <--- ИСПРАВЛЕНО
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,11 +27,13 @@ import java.util.Objects;
 @Slf4j
 @RequiredArgsConstructor
 public class CourierServiceImpl implements CourierService {
+
     private final UserService userService;
     private final CourierRepo courierRepo;
     private final DeliveryTaskRepo deliveryTaskRepo;
     private final OrderRepo orderRepo;
     private final DeliveryTaskMapper deliveryTaskMapper;
+    private final EmailService emailService;          // BE-010
 
     private Courier getCurrentCourier() {
         UserEntity userEntity = userService.getCurrentUser();
@@ -100,6 +103,23 @@ public class CourierServiceImpl implements CourierService {
         }
 
         deliveryTaskRepo.save(task);
+
+        // ── BE-010: уведомление покупателю при доставке ───────────────────────
+        // Отправляем только при переходе в DELIVERED; остальные статусы не нотифицируются
+        if (newStatus == OrderStatus.DELIVERED && task.getOrderEntity() != null) {
+            try {
+                String customerEmail = task.getOrderEntity()
+                        .getCustomerEntity()
+                        .getUserEntity()
+                        .getEmail();
+                emailService.sendDeliveryStatusNotification(
+                        customerEmail, task.getOrderEntity().getId(), newStatus);
+            } catch (Exception e) {
+                log.error("Failed to send delivery notification for order {}: {}",
+                        task.getOrderEntity().getId(), e.getMessage());
+            }
+        }
+        // ─────────────────────────────────────────────────────────────────────
     }
 
     @Override
@@ -116,6 +136,5 @@ public class CourierServiceImpl implements CourierService {
 
         task.setEvidenceUrl(evidenceUrl);
         deliveryTaskRepo.save(task);
-
     }
 }

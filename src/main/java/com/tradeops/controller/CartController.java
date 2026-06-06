@@ -1,8 +1,8 @@
 package com.tradeops.controller;
 
+import com.tradeops.models.entity.UserEntity;
 import com.tradeops.models.request.AddToCartRequest;
 import com.tradeops.models.response.CartResponse;
-import com.tradeops.models.entity.UserEntity;
 import com.tradeops.service.CustomerCartService;
 import com.tradeops.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -34,5 +34,13 @@ public class CartController {
         UserEntity user = userService.getCurrentUser();
         cartService.clearCart(user);
         return ResponseEntity.noContent().build();
+    }
+
+    // ── BE-009 ────────────────────────────────────────────────────────────────
+
+    @DeleteMapping("/items/{productId}")
+    public ResponseEntity<CartResponse> removeFromCart(@PathVariable Long productId) {
+        UserEntity user = userService.getCurrentUser();
+        return ResponseEntity.ok(cartService.removeFromCart(user, productId));
     }
 }

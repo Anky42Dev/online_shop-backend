@@ -1,6 +1,5 @@
 package com.tradeops.controller;
 
-
 import com.tradeops.models.response.ProductResponse;
 import com.tradeops.service.ProductService;
 import lombok.RequiredArgsConstructor;
@@ -16,12 +15,15 @@ public class ProductController {
 
     private final ProductService productService;
 
+    // BE-011: добавлен @RequestParam search — регистронезависимый поиск по name/description
+    // Пример: GET /api/v1/products?search=ноутбук&categoryId=3
     @GetMapping
     public ResponseEntity<List<ProductResponse>> getAllProducts(
             @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) Long traderId
+            @RequestParam(required = false) Long traderId,
+            @RequestParam(required = false) String search
     ) {
-        return ResponseEntity.ok(productService.getAllProducts(categoryId, traderId));
+        return ResponseEntity.ok(productService.getAllProducts(categoryId, traderId, search));
     }
 
     @GetMapping("/{id}")

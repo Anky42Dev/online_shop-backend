@@ -1,14 +1,11 @@
 package com.tradeops.service.impl;
 
+import com.tradeops.exceptions.ResourceNotFoundException;
 import com.tradeops.mapper.CartMapper;
 import com.tradeops.models.entity.*;
 import com.tradeops.models.request.AddToCartRequest;
 import com.tradeops.models.response.CartResponse;
-import com.tradeops.models.entity.*;
 import com.tradeops.repo.*;
-import com.tradeops.repo.CartRepo;
-import com.tradeops.repo.CustomerRepo;
-import com.tradeops.repo.ProductRepo;
 import com.tradeops.service.CustomerCartService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -41,7 +38,7 @@ public class CustomerCartServiceImpl implements CustomerCartService {
 
         if (!cart.getCartItems().isEmpty()) {
             ProductEntity existingProduct = cart.getCartItems().get(0).getProduct();
-           
+
             if (existingProduct.getTrader() != null) {
                 if (!existingProduct.getTrader().getId().equals(request.traderId())) {
                     throw new IllegalArgumentException("Cannot mix products from different traders in one cart");
@@ -51,7 +48,6 @@ public class CustomerCartServiceImpl implements CustomerCartService {
             }
         }
 
-        // Update quantity or create new item
         Optional<CartItemEntity> existingItem = cart.getCartItems().stream()
                 .filter(item -> item.getProduct().getId().equals(product.getId()))
                 .findFirst();
@@ -78,6 +74,29 @@ public class CustomerCartServiceImpl implements CustomerCartService {
         cart.getCartItems().clear();
         cartRepo.save(cart);
     }
+
+    // ── BE-009 ────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public CartResponse removeFromCart(UserEntity user, Long productId) {
+        CartEntity cart = getOrCreateCart(user);
+
+        boolean removed = cart.getCartItems()
+                .removeIf(item -> item.getProduct().getId().equals(productId));
+
+        if (!removed) {
+            throw new ResourceNotFoundException(
+                    "Product " + productId + " not found in cart");
+        }
+
+        // orphanRemoval = true на CartEntity.cartItems гарантирует,
+        // что удалённый CartItemEntity будет физически удалён из БД при save
+        CartEntity saved = cartRepo.save(cart);
+        return cartMapper.toResponse(saved);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
 
     private CartEntity getOrCreateCart(UserEntity user) {
         CustomerEntity customer = customerRepo.findByUserEntity_Username(user.getUsername())

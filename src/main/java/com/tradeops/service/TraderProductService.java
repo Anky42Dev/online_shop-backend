@@ -17,4 +17,7 @@ public interface TraderProductService {
     TraderProductResponse updateProduct(UserEntity trader, Long productId, TraderProductRequest request);
 
     void deleteProduct(UserEntity trader, Long productId);
+
+    // BE-007 — обновление остатка трейдером
+    TraderProductResponse updateStock(UserEntity trader, Long productId, int newQuantity);
 }

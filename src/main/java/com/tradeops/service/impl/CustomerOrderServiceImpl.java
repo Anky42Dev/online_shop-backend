@@ -5,10 +5,9 @@ import com.tradeops.models.entity.*;
 import com.tradeops.models.model.OrderStatus;
 import com.tradeops.models.request.PlaceOrderRequest;
 import com.tradeops.models.response.OrderResponse;
-import com.tradeops.models.entity.*;
-import com.tradeops.repo.*;
 import com.tradeops.repo.*;
 import com.tradeops.service.CustomerOrderService;
+import com.tradeops.service.EmailService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +29,7 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
     private final DeliveryTaskRepo deliveryTaskRepo;
     private final CourierRepo courierRepo;
     private final OrderMapper orderMapper;
+    private final EmailService emailService;          // BE-010
 
     @Override
     @Transactional
@@ -58,19 +58,16 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         BigDecimal totalAmount = BigDecimal.ZERO;
 
         for (CartItemEntity cartItem : cart.getCartItems()) {
-            // Check stock
             if (cartItem.getProduct().getStockQuantity() < cartItem.getQuantity()) {
                 throw new IllegalArgumentException("Not enough stock for product: " + cartItem.getProduct().getName());
             }
-            
-            // Reduce stock
-            cartItem.getProduct().setStockQuantity(cartItem.getProduct().getStockQuantity() - cartItem.getQuantity());
-            
+            cartItem.getProduct().setStockQuantity(
+                    cartItem.getProduct().getStockQuantity() - cartItem.getQuantity());
+
             OrderItemEntity orderItem = new OrderItemEntity();
             orderItem.setOrder(order);
             orderItem.setProduct(cartItem.getProduct());
             orderItem.setQuantity(cartItem.getQuantity());
-            // Snapshot current price
             orderItem.setCurrentPrice(cartItem.getProduct().getPrice());
             orderItems.add(orderItem);
 
@@ -84,10 +81,20 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
 
         OrderEntity savedOrder = orderRepo.save(order);
 
+        // ── BE-010: уведомление трейдеру о новом заказе ───────────────────────
+        // try-catch изолирует ошибку отправки от основной транзакции
+        try {
+            emailService.sendNewOrderNotification(
+                    trader.getEmail(), savedOrder.getId(), totalAmount);
+        } catch (Exception e) {
+            log.error("Failed to send new order notification to trader {}: {}",
+                    trader.getEmail(), e.getMessage());
+        }
+        // ─────────────────────────────────────────────────────────────────────
 
         List<Courier> couriers = courierRepo.findAll();
 
-        if(!couriers.isEmpty()){
+        if (!couriers.isEmpty()) {
             Courier randomCourier = couriers.get(0);
 
             DeliveryTaskEntity task = new DeliveryTaskEntity();
@@ -100,7 +107,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
             savedOrder.setStatus(OrderStatus.ASSIGNED);
             orderRepo.save(savedOrder);
 
-            log.info("System automatically assigned Order {} to Courier {}", savedOrder.getId(), randomCourier.getUserEntity().getUsername());
+            log.info("System automatically assigned Order {} to Courier {}",
+                    savedOrder.getId(), randomCourier.getUserEntity().getUsername());
         } else {
             log.warn("No couriers found! Order {} remains unassigned.", savedOrder.getId());
         }

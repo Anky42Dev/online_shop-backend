@@ -96,7 +96,24 @@ public class TraderProductServiceImpl implements TraderProductService {
         log.info("Trader {} deleted product {}", trader.getId(), productId);
     }
 
-    // --- helpers ---
+    // ── BE-007 ────────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public TraderProductResponse updateStock(UserEntity trader, Long productId, int newQuantity) {
+        ProductEntity product = findOwnedProduct(trader.getId(), productId);
+
+        int oldQuantity = product.getStockQuantity();
+        product.setStockQuantity(newQuantity);
+
+        ProductEntity saved = productRepo.save(product);
+        log.info("Trader {} updated stock for product {}: {} -> {}",
+                trader.getId(), productId, oldQuantity, newQuantity);
+
+        return toResponse(saved);
+    }
+
+    // ── helpers ───────────────────────────────────────────────────────────────
 
     private ProductEntity findOwnedProduct(Long traderId, Long productId) {
         return productRepo.findByIdAndTrader_Id(productId, traderId)
