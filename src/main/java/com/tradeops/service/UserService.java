@@ -19,4 +19,5 @@ public interface UserService {
     void changePassword(ChangePasswordRequest changePasswordRequest);
     UserEntity getCurrentUser();
     LoginResponse refreshToken(RefreshTokenRequest refreshTokenRequest);
+    void logout(String refreshToken);
 }

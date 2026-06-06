@@ -87,8 +87,8 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
             emailService.sendNewOrderNotification(
                     trader.getEmail(), savedOrder.getId(), totalAmount);
         } catch (Exception e) {
-            log.error("Failed to send new order notification to trader {}: {}",
-                    trader.getEmail(), e.getMessage());
+            log.error("Failed to send email notification for order {}: {}",
+                    savedOrder.getId(), e.getMessage(), e);
         }
         // ─────────────────────────────────────────────────────────────────────
 

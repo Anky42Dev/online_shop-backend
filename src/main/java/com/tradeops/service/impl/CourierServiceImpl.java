@@ -50,6 +50,7 @@ public class CourierServiceImpl implements CourierService {
             throw new AccessDeniedException("Access denied: You may only see your tasks!");
         }
 
+        log.info("Courier {} fetched delivery tasks list", courier.getId());
         return deliveryTaskMapper.toDTO(deliveryTaskRepo.findDeliveryTaskEntitiesByCourier_Id(courier.getId()));
     }
 
@@ -103,20 +104,19 @@ public class CourierServiceImpl implements CourierService {
         }
 
         deliveryTaskRepo.save(task);
+        log.info("Courier {} set status of task {} to {}", courier.getId(), deliveryTaskId, newStatus);
 
         // ── BE-010: уведомление покупателю при доставке ───────────────────────
-        // Отправляем только при переходе в DELIVERED; остальные статусы не нотифицируются
         if (newStatus == OrderStatus.DELIVERED && task.getOrderEntity() != null) {
+            Long orderId = task.getOrderEntity().getId();
             try {
                 String customerEmail = task.getOrderEntity()
                         .getCustomerEntity()
                         .getUserEntity()
                         .getEmail();
-                emailService.sendDeliveryStatusNotification(
-                        customerEmail, task.getOrderEntity().getId(), newStatus);
+                emailService.sendDeliveryStatusNotification(customerEmail, orderId, newStatus);
             } catch (Exception e) {
-                log.error("Failed to send delivery notification for order {}: {}",
-                        task.getOrderEntity().getId(), e.getMessage());
+                log.error("Failed to send email notification for order {}: {}", orderId, e.getMessage(), e);
             }
         }
         // ─────────────────────────────────────────────────────────────────────
@@ -136,5 +136,6 @@ public class CourierServiceImpl implements CourierService {
 
         task.setEvidenceUrl(evidenceUrl);
         deliveryTaskRepo.save(task);
+        log.info("Courier {} uploaded evidence for task {}", courier.getId(), taskId);
     }
 }

@@ -3,10 +3,9 @@ package com.tradeops.service.impl;
 import com.tradeops.dataservices.RoleDataService;
 import com.tradeops.dataservices.UserEntityDataService;
 import com.tradeops.exceptions.UserAlreadyExistsException;
+import com.tradeops.models.entity.RevokedToken;
 import com.tradeops.models.entity.Role;
 import com.tradeops.models.entity.UserEntity;
-import com.tradeops.models.request.*;
-import com.tradeops.models.response.*;
 import com.tradeops.models.request.ChangePasswordRequest;
 import com.tradeops.models.request.LoginRequest;
 import com.tradeops.models.request.RefreshTokenRequest;
@@ -14,6 +13,7 @@ import com.tradeops.models.request.RegisterRequest;
 import com.tradeops.models.response.JWTResponse;
 import com.tradeops.models.response.LoginResponse;
 import com.tradeops.models.response.RegistrationResponse;
+import com.tradeops.repo.RevokedTokenRepo;
 import com.tradeops.security.service.JWTService;
 import com.tradeops.service.CustomUserDetailsService;
 import com.tradeops.service.UserService;
@@ -24,8 +24,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -40,7 +40,7 @@ import java.util.List;
 public class UserServiceImpl implements UserService {
 
     private final UserEntityDataService userData;
-
+    private final RevokedTokenRepo revokedTokenRepo;
     private final RoleDataService roleData;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authManager;
@@ -244,6 +244,21 @@ public class UserServiceImpl implements UserService {
         }
         if (userData.existsByEmail(req.email())) {
             throw new UserAlreadyExistsException("Email already registered");
+        }
+    }
+
+
+    @Override
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            throw new IllegalArgumentException("Refresh token must not be blank");
+        }
+        String hash = jwtService.hashToken(refreshToken);
+        if (!revokedTokenRepo.existsByTokenHash(hash)) {
+            LocalDateTime expiresAt = jwtService.extractExpirationAsLocalDateTime(refreshToken);
+            revokedTokenRepo.save(new RevokedToken(hash, LocalDateTime.now(), expiresAt));
+            log.info("Token revoked: hash={}", hash);
         }
     }
 

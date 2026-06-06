@@ -26,10 +26,12 @@ public class TraderOrderServiceImpl implements TraderOrderService {
     @Override
     @Transactional(readOnly = true)
     public List<TraderOrderResponse> getMyOrders(UserEntity trader, OrderStatus statusFilter) {
+        log.info("Trader {} fetching orders with statusFilter={}", trader.getId(), statusFilter);
         List<OrderEntity> orders = (statusFilter != null)
                 ? orderRepo.findAllByTrader_IdAndStatus(trader.getId(), statusFilter)
                 : orderRepo.findAllByTrader_Id(trader.getId());
 
+        log.info("Trader {} fetched {} orders", trader.getId(), orders.size());
         return orders.stream()
                 .map(this::toResponse)
                 .toList();
@@ -38,6 +40,7 @@ public class TraderOrderServiceImpl implements TraderOrderService {
     @Override
     @Transactional(readOnly = true)
     public TraderOrderResponse getMyOrderById(UserEntity trader, Long orderId) {
+        log.info("Trader {} requested order {}", trader.getId(), orderId);
         OrderEntity order = orderRepo.findByIdAndTrader_Id(orderId, trader.getId())
                 .orElseThrow(() -> new ResourceNotFoundException(
                         "Order " + orderId + " not found"));
