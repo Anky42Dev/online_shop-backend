@@ -5,6 +5,7 @@ import com.tradeops.models.request.AddToCartRequest;
 import com.tradeops.models.response.CartResponse;
 import com.tradeops.service.CustomerCartService;
 import com.tradeops.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,7 +25,7 @@ public class CartController {
     }
 
     @PostMapping("/add")
-    public ResponseEntity<CartResponse> addToCart(@RequestBody AddToCartRequest request) {
+    public ResponseEntity<CartResponse> addToCart(@Valid @RequestBody AddToCartRequest request) {
         UserEntity user = userService.getCurrentUser();
         return ResponseEntity.ok(cartService.addToCart(user, request));
     }

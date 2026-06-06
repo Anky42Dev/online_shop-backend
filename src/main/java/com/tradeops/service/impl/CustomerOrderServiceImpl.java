@@ -92,14 +92,13 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
         }
         // ─────────────────────────────────────────────────────────────────────
 
-        List<Courier> couriers = courierRepo.findAll();
+        // ── BE-016: балансировка нагрузки — выбираем наименее занятого курьера ─
+        Courier assignedCourier = findLeastBusyCourier();
 
-        if (!couriers.isEmpty()) {
-            Courier randomCourier = couriers.get(0);
-
+        if (assignedCourier != null) {
             DeliveryTaskEntity task = new DeliveryTaskEntity();
             task.setOrderEntity(savedOrder);
-            task.setCourier(randomCourier);
+            task.setCourier(assignedCourier);
             task.setOrderStatus(OrderStatus.ASSIGNED);
 
             deliveryTaskRepo.save(task);
@@ -107,17 +106,47 @@ public class CustomerOrderServiceImpl implements CustomerOrderService {
             savedOrder.setStatus(OrderStatus.ASSIGNED);
             orderRepo.save(savedOrder);
 
-            log.info("System automatically assigned Order {} to Courier {}",
-                    savedOrder.getId(), randomCourier.getUserEntity().getUsername());
+            log.info("System automatically assigned Order {} to Courier {} (active tasks: {})",
+                    savedOrder.getId(),
+                    assignedCourier.getUserEntity().getUsername(),
+                    deliveryTaskRepo.countByCourier_IdAndOrderStatusNotIn(
+                            assignedCourier.getId(), List.of(OrderStatus.DELIVERED, OrderStatus.FAILED)));
         } else {
-            log.warn("No couriers found! Order {} remains unassigned.", savedOrder.getId());
+            log.warn("No couriers available! Order {} remains unassigned.", savedOrder.getId());
         }
+        // ─────────────────────────────────────────────────────────────────────
 
         cart.getCartItems().clear();
         cartRepo.save(cart);
 
         return orderMapper.toResponse(savedOrder);
     }
+
+    // ── BE-016: балансировка нагрузки ────────────────────────────────────────
+
+    private static final List<OrderStatus> TERMINAL_STATUSES =
+            List.of(OrderStatus.DELIVERED, OrderStatus.FAILED);
+
+    /**
+     * Возвращает курьера с наименьшим числом активных задач.
+     * Активные задачи — всё, кроме DELIVERED и FAILED.
+     * Возвращает null, если курьеров нет — заказ создаётся без назначения.
+     */
+    private Courier findLeastBusyCourier() {
+        List<Courier> couriers = courierRepo.findAll();
+
+        if (couriers.isEmpty()) {
+            return null;
+        }
+
+        return couriers.stream()
+                .min(java.util.Comparator.comparingLong(courier ->
+                        deliveryTaskRepo.countByCourier_IdAndOrderStatusNotIn(
+                                courier.getId(), TERMINAL_STATUSES)))
+                .orElse(null);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     @Override
     public List<OrderResponse> getMyOrders(UserEntity user) {
